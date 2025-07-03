@@ -26,7 +26,7 @@ const Navbar = () => {
       position: 'relative' 
     }}>
       <div style={{ position: 'absolute', left: '2rem', fontSize: '2rem' }}>
-        <img style={{ height: '100px'}} src="/public/logo.png" alt="" />
+        <img style={{ height: '100px'}} src="/logo.png" alt="" />
       </div>
       <div style={{ display: 'flex', gap: '2rem' }}>
         <Link to="/" style={getLinkStyle('/')}>Home</Link>
