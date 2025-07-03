@@ -1,7 +1,9 @@
 
+
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from '../../../context/ThemeContext';
+import ProfileMenu from "./ProfileMenu";
 
 
 const Navbar = () => {
@@ -37,7 +39,7 @@ const Navbar = () => {
         <span className={`block w-6 h-0.5 rounded bg-gray-700 dark:bg-white transition-all duration-300 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
       </button>
 
-      {/* Links */}
+      {/* Links + Profile/Logout (desktop) */}
       <div className="hidden md:flex gap-8 items-center">
         {navLinks.map(link => (
           <Link
@@ -48,6 +50,9 @@ const Navbar = () => {
             {link.label}
           </Link>
         ))}
+        <div className="ml-6 relative">
+          <ProfileMenu />
+        </div>
       </div>
 
       {/* Mobile menu */}
@@ -63,6 +68,9 @@ const Navbar = () => {
               {link.label}
             </Link>
           ))}
+          <div className="w-full flex flex-col items-center mt-4">
+            <ProfileMenu />
+          </div>
         </div>
       )}
     </nav>
