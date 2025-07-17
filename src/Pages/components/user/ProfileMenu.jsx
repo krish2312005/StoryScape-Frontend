@@ -16,7 +16,7 @@ const ProfileMenu = () => {
   };
 
   return (
-    <div style={{ position: 'absolute', right: '2rem', top: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+    <div className="flex gap-3 md:gap-4 items-center justify-end w-full px-4 py-2 md:py-3">
       <button 
         onClick={handleProfileClick}
         style={{ 
@@ -69,7 +69,7 @@ const ProfileMenu = () => {
         }}
         aria-label="Toggle dark/light mode"
       >
-        {theme === 'dark' ? '🌙' : '☀️'}
+        {theme === 'dark' ? '\ud83c\udf19' : '\u2600\ufe0f'}
       </button>
     </div>
   );

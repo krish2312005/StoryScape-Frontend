@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/user/Navbar';
-import ProfileMenu from '../components/user/ProfileMenu';
 
 const Signup_page = () => {
   const navigate = useNavigate();
@@ -42,26 +40,20 @@ const Signup_page = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-    
     try {
-      // Filter out empty social links
       const socialLinks = Object.entries(formData.socialLinks).reduce((acc, [key, value]) => {
         if (value.trim()) {
           acc[key] = value;
         }
         return acc;
       }, {});
-
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: formData.username,
           email: formData.email,
@@ -70,9 +62,7 @@ const Signup_page = () => {
           socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : undefined
         }),
       });
-      
       if (response.ok) {
-        const data = await response.json();
         navigate('/login');
       } else {
         const data = await response.json();
@@ -80,7 +70,6 @@ const Signup_page = () => {
       }
     } catch (err) {
       setError('An error occurred during signup. Please try again.');
-      console.error('Signup error:', err);
     }
   };
 
@@ -97,412 +86,150 @@ const Signup_page = () => {
   };
 
   return (
-    <>
-      <Navbar />
-      <ProfileMenu />
-      <div style={{ 
-        minHeight: '100vh', 
-        background: '#f7f6f2',
-        padding: '2rem',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}>
-        <div style={{ 
-          maxWidth: '500px', 
-          width: '100%',
-          background: '#fff',
-          borderRadius: '15px',
-          padding: '2rem',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{ 
-            fontSize: '2rem', 
-            color: '#333',
-            marginBottom: '1rem',
-            textAlign: 'center'
-          }}>
-            Create Your Account
-          </h2>
-          <p style={{ 
-            color: '#666',
-            marginBottom: '2rem',
-            textAlign: 'center'
-          }}>
-            Join our community of storytellers
-          </p>
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            marginBottom: '2rem',
-            gap: '2rem'
-          }}>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: step === 1 ? '#2d2540' : '#ddd',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold'
-              }}>
-                1
-              </div>
-              <span style={{ 
-                color: step === 1 ? '#2d2540' : '#666',
-                fontSize: '0.875rem',
-                fontWeight: step === 1 ? 'bold' : 'normal'
-              }}>
-                Account Details
-              </span>
-            </div>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: step === 2 ? '#2d2540' : '#ddd',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold'
-              }}>
-                2
-              </div>
-              <span style={{ 
-                color: step === 2 ? '#2d2540' : '#666',
-                fontSize: '0.875rem',
-                fontWeight: step === 2 ? 'bold' : 'normal'
-              }}>
-                Profile Info
-              </span>
-            </div>
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-[#f7f6f2]">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8 md:p-10">
+        <h2 className="text-2xl md:text-3xl font-extrabold text-center mb-2 text-indigo-700">Create Your Account</h2>
+        <p className="text-center text-gray-600 mb-6 text-base md:text-lg">Join our community of storytellers</p>
+        <div className="flex justify-center mb-8 gap-6">
+          <div className="flex flex-col items-center gap-1">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-base ${step === 1 ? 'bg-indigo-700' : 'bg-gray-300'}`}>1</div>
+            <span className={`text-xs font-semibold ${step === 1 ? 'text-indigo-700' : 'text-gray-500'}`}>Account Details</span>
           </div>
-
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {error && (
-              <div style={{
-                background: '#fee2e2',
-                border: '1px solid #fecaca',
-                color: '#dc2626',
-                padding: '0.75rem',
-                borderRadius: '8px',
-                fontSize: '0.875rem'
-              }}>
-                {error}
-              </div>
-            )}
-
-            {step === 1 ? (
-              <>
-                <div>
-                  <label htmlFor="username" style={{ 
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    color: '#666'
-                  }}>
-                    Username *
-                  </label>
-                  <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    required
-                    value={formData.username}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '1rem'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" style={{ 
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    color: '#666'
-                  }}>
-                    Email address *
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '1rem'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="password" style={{ 
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    color: '#666'
-                  }}>
-                    Password *
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '1rem'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="confirmPassword" style={{ 
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    color: '#666'
-                  }}>
-                    Confirm Password *
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '1rem'
-                    }}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  style={{
-                    marginTop: '1rem',
-                    padding: '0.75rem',
-                    background: '#2d2540',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '25px',
-                    fontSize: '1rem',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#3d3550'}
-                  onMouseOut={(e) => e.target.style.backgroundColor = '#2d2540'}
-                >
-                  Next Step
-                </button>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label htmlFor="bio" style={{ 
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    color: '#666'
-                  }}>
-                    Bio
-                  </label>
-                  <textarea
-                    id="bio"
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '1rem',
-                      minHeight: '100px',
-                      resize: 'vertical'
-                    }}
-                    placeholder="Tell us about yourself..."
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="twitter" style={{ 
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    color: '#666'
-                  }}>
-                    Twitter
-                  </label>
-                  <input
-                    id="twitter"
-                    name="social.twitter"
-                    type="url"
-                    value={formData.socialLinks.twitter}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '1rem'
-                    }}
-                    placeholder="https://twitter.com/yourusername"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="instagram" style={{ 
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    color: '#666'
-                  }}>
-                    Instagram
-                  </label>
-                  <input
-                    id="instagram"
-                    name="social.instagram"
-                    type="url"
-                    value={formData.socialLinks.instagram}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '1rem'
-                    }}
-                    placeholder="https://instagram.com/yourusername"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="website" style={{ 
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    color: '#666'
-                  }}>
-                    Website
-                  </label>
-                  <input
-                    id="website"
-                    name="social.website"
-                    type="url"
-                    value={formData.socialLinks.website}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '1rem'
-                    }}
-                    placeholder="https://yourwebsite.com"
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    style={{
-                      flex: 1,
-                      padding: '0.75rem',
-                      background: '#f0f0f0',
-                      color: '#333',
-                      border: 'none',
-                      borderRadius: '25px',
-                      fontSize: '1rem',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = '#e0e0e0'}
-                    onMouseOut={(e) => e.target.style.backgroundColor = '#f0f0f0'}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="submit"
-                    style={{
-                      flex: 1,
-                      padding: '0.75rem',
-                      background: '#2d2540',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '25px',
-                      fontSize: '1rem',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = '#3d3550'}
-                    onMouseOut={(e) => e.target.style.backgroundColor = '#2d2540'}
-                  >
-                    Create Account
-                  </button>
-                </div>
-              </>
-            )}
-          </form>
-
-          <div style={{ 
-            marginTop: '2rem',
-            textAlign: 'center',
-            color: '#666',
-            fontSize: '0.875rem'
-          }}>
-            Already have an account?{' '}
-            <button
-              onClick={() => navigate('/login')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#2d2540',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                padding: 0
-              }}
-            >
-              Sign in
-            </button>
+          <div className="flex flex-col items-center gap-1">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-base ${step === 2 ? 'bg-indigo-700' : 'bg-gray-300'}`}>2</div>
+            <span className={`text-xs font-semibold ${step === 2 ? 'text-indigo-700' : 'text-gray-500'}`}>Profile Info</span>
           </div>
         </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {error && (
+            <div className="bg-red-100 border border-red-300 text-red-700 rounded-lg px-4 py-2 text-sm font-semibold text-center">{error}</div>
+          )}
+          {step === 1 ? (
+            <>
+              <div>
+                <label htmlFor="username" className="block mb-1 text-gray-700 font-semibold">Username *</label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base"
+                />
+              </div>
+              <div>
+                <label htmlFor="email" className="block mb-1 text-gray-700 font-semibold">Email address *</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="block mb-1 text-gray-700 font-semibold">Password *</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base"
+                />
+              </div>
+              <div>
+                <label htmlFor="confirmPassword" className="block mb-1 text-gray-700 font-semibold">Confirm Password *</label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={nextStep}
+                className="w-full py-3 rounded-lg bg-indigo-700 text-white font-bold text-lg shadow-md hover:bg-indigo-800 transition-colors mt-2"
+              >
+                Next
+              </button>
+            </>
+          ) : (
+            <>
+              <div>
+                <label htmlFor="bio" className="block mb-1 text-gray-700 font-semibold">Bio</label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  className="w-full min-h-[80px] p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base resize-vertical"
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-gray-700 font-semibold">Social Links</label>
+                <input
+                  name="social.twitter"
+                  type="text"
+                  placeholder="Twitter URL"
+                  value={formData.socialLinks.twitter}
+                  onChange={handleChange}
+                  className="w-full mb-2 px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base"
+                />
+                <input
+                  name="social.instagram"
+                  type="text"
+                  placeholder="Instagram URL"
+                  value={formData.socialLinks.instagram}
+                  onChange={handleChange}
+                  className="w-full mb-2 px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base"
+                />
+                <input
+                  name="social.website"
+                  type="text"
+                  placeholder="Website URL"
+                  value={formData.socialLinks.website}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  className="w-full py-3 rounded-lg bg-gray-200 text-gray-700 font-bold text-lg shadow-md hover:bg-gray-300 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-lg bg-indigo-700 text-white font-bold text-lg shadow-md hover:bg-indigo-800 transition-colors"
+                >
+                  Sign Up
+                </button>
+              </div>
+            </>
+          )}
+        </form>
+        <div className="mt-6 text-center text-gray-600 text-sm">
+          Already have an account?{' '}
+          <button
+            onClick={() => navigate('/login')}
+            className="text-indigo-700 font-bold hover:underline bg-none border-none p-0"
+          >
+            Sign in
+          </button>
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 

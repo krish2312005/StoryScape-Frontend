@@ -16,7 +16,6 @@ import Stories_page from './Pages/admin/Stories_page';
 import Comments_Page from './Pages/admin/Comments_Page';
 import Forgot_password_page from './Pages/user/Forgot_password_page';
 import { ThemeProvider } from './context/ThemeContext';
-import { Analytics } from "@vercel/analytics/next"
 
 function App() {
   return (
@@ -38,7 +37,6 @@ function App() {
           <Route path="/Admin/Comments" element={<Comments_Page />} />
         </Routes>
       </div>
-      <Analytics />
     </ThemeProvider>
   )
 }

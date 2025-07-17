@@ -7,53 +7,27 @@ const Sidebar = ({ trending = [] }) => {
   const navigate = useNavigate();
   const { theme } = useTheme();
 
-  const sidebarBg = theme === 'dark' ? '#232336' : '#fff';
-  const sidebarShadow = theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(44, 37, 64, 0.06)';
-  const headingColor = theme === 'dark' ? '#fff' : '#2d2540';
-  const noTrendingColor = theme === 'dark' ? '#bbb' : '#666';
-  const titleColor = theme === 'dark' ? '#fff' : '#2d2540';
-  const metaColor = theme === 'dark' ? '#bbb' : '#a6a3b2';
-
   return (
-    <div style={{ background: sidebarBg, borderRadius: '1.5rem', padding: '2rem 1.5rem', width: 320, marginLeft: '2rem', boxShadow: sidebarShadow }}>
-      <h4 style={{ fontSize: '1.3rem', marginBottom: '1.5rem', color: headingColor }}>Trending Stories</h4>
+    <aside
+      className={`rounded-2xl p-6 md:p-8 w-full md:w-80 mt-4 md:mt-0 md:ml-8 shadow-xl transition-colors duration-300 border border-transparent dark:border-[#232336] bg-white dark:bg-[#232336]`}
+    >
+      <h4 className="text-xl font-bold mb-6 text-indigo-700 dark:text-indigo-200 tracking-tight">Trending Stories</h4>
       {trending.length === 0 ? (
-        <p style={{ color: noTrendingColor, textAlign: 'center' }}>No trending stories yet</p>
+        <p className="text-center text-gray-400 dark:text-gray-400">No trending stories yet</p>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        <ul className="space-y-5">
           {trending.map((story, idx) => (
-            <li 
-              key={idx} 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                marginBottom: '1.25rem',
-                cursor: 'pointer'
-              }}
+            <li
+              key={idx}
+              className="flex items-center cursor-pointer hover:bg-indigo-50 dark:hover:bg-[#181824] rounded-xl p-3 transition-colors group"
               onClick={() => navigate(`/story/${story.id}`)}
             >
               <AvatarDisplay user={story.author} size={48} />
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                marginLeft: '1rem',
-                flex: 1
-              }}>
-                <span style={{ 
-                  fontWeight: 600, 
-                  color: titleColor,
-                  marginBottom: '0.25rem',
-                  display: '-webkit-box',
-                  WebkitLineClamp: '1',
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}>
+              <div className="flex flex-col ml-4 flex-1 min-w-0">
+                <span className="font-semibold truncate text-indigo-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-200" title={story.title}>
                   {story.title}
                 </span>
-                <span style={{ 
-                  color: metaColor, 
-                  fontSize: '0.95rem' 
-                }}>
+                <span className="text-sm text-gray-500 dark:text-gray-400 truncate">
                   {story.meta}
                 </span>
               </div>
@@ -61,7 +35,7 @@ const Sidebar = ({ trending = [] }) => {
           ))}
         </ul>
       )}
-    </div>
+    </aside>
   );
 };
 

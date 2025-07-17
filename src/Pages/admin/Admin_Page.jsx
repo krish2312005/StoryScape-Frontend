@@ -19,6 +19,16 @@ const Admin_Page = () => {
   const [email, setEmail] = useState("");
   const [editId, setEditId] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const alreadyAuth = sessionStorage.getItem("admin_authenticated");
@@ -68,10 +78,26 @@ const Admin_Page = () => {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f7f6f2" }}>
+    <div style={{ 
+      display: "flex", 
+      minHeight: "100vh", 
+      background: "#f7f6f2",
+      flexDirection: isMobile ? 'column' : 'row'
+    }}>
       <AdminSidebar admin={admin} onLogout={handleLogout} ownerName={ownerName} />
-      <main style={{ marginLeft: 260, flex: 1, padding: "3rem 2rem" }}>
-        <h2 style={{ color: "#2d2540", fontSize: "2rem", marginBottom: "2rem" }}>Admin Main Landing Page</h2>
+      <main style={{ 
+        marginLeft: isMobile ? 0 : 260, 
+        flex: 1, 
+        padding: isMobile ? "1rem" : "3rem 2rem",
+        marginTop: isMobile ? '60px' : 0
+      }}>
+        <h2 style={{ 
+          color: "#2d2540", 
+          fontSize: isMobile ? "1.5rem" : "2rem", 
+          marginBottom: isMobile ? "1rem" : "2rem" 
+        }}>
+          Admin Main Landing Page
+        </h2>
       </main>
     </div>
   );

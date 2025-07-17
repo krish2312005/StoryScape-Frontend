@@ -1,93 +1,76 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-
-const sidebarStyle = {
-  position: "fixed",
-  left: 0,
-  top: 0,
-  height: "100vh",
-  width: 260,
-  background: "#fff",
-  boxShadow: "2px 0 8px rgba(44, 37, 64, 0.06)",
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "2rem 1rem 1rem 1rem",
-  zIndex: 100,
-};
-
-const navStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "1.5rem",
-  marginTop: "2rem",
-  alignItems: "center",
-};
-
-const bottomStyle = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "1rem",
-};
-
-const avatarStyle = {
-  width: 56,
-  height: 56,
-  borderRadius: "50%",
-  objectFit: "cover",
-  border: "2px solid #edeaf3",
-};
 
 const AdminSidebar = ({ admin, onLogout }) => {
   const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const getLinkStyle = (path) => ({
-    color: location.pathname === path ? "#2d2540" : "#666",
-    fontWeight: location.pathname === path ? 700 : 500,
-    textAlign: "center",
-    textDecoration: 'none',
-    padding: "0.5rem",
-    borderRadius: "0.5rem",
-    width: "100%",
-    background: location.pathname === path ? "#edeaf3" : "transparent",
-    transition: "all 0.3s ease"
-  });
+  const navLinks = [
+    { to: "/Admin", label: "Dashboard" },
+    { to: "/Admin/Users", label: "Users" },
+    { to: "/Admin/Stories", label: "Stories" },
+    { to: "/Admin/Comments", label: "Comments" },
+  ];
+
+  const getLinkClasses = (path) =>
+    `w-full text-center px-3 py-2 rounded-lg transition-colors duration-200 text-base font-medium ${
+      location.pathname === path
+        ? 'bg-indigo-100 text-indigo-900 font-bold'
+        : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-900'
+    }`;
 
   return (
-    <aside style={sidebarStyle}>
-      <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ fontWeight: 700, fontSize: "1.5rem", color: "#2d2540", textAlign: "center" }}>Admin</div>
-        <nav style={navStyle}>
-          <Link to="/Admin" style={getLinkStyle("/Admin")}>Dashboard</Link>
-          <Link to="/Admin/Users" style={getLinkStyle("/Admin/Users")}>Users</Link>
-          <Link to="/Admin/Stories" style={getLinkStyle("/Admin/Stories")}>Stories</Link>
-          <Link to="/Admin/Comments" style={getLinkStyle("/Admin/Comments")}>Comments</Link>
-        </nav>
-    </div>
-    <div style={bottomStyle}>
-      {/*
-      <img src={admin.avatar} alt="Admin" style={avatarStyle} /> 
-      <div style={{ color: "#2d2540", fontWeight: 600, textAlign: "center" }}>{admin.name}</div>
-      
-      <button
-        onClick={onLogout}
-        style={{
-          background: "#edeaf3",
-          color: "#2d2540",
-          border: "none",
-          borderRadius: "1.5rem",
-          padding: "0.5rem 2rem",
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
+    <aside className="fixed left-0 top-0 h-[60px] md:h-screen w-full md:w-64 bg-white shadow-lg z-30 flex flex-col md:justify-between items-center px-4 md:px-0 py-2 md:py-8 transition-all duration-300">
+      {/* Top bar for mobile, column for desktop */}
+      <div className="flex w-full items-center justify-between md:flex-col md:items-center md:justify-center">
+        <div className="font-bold text-lg md:text-2xl text-indigo-900 text-center">Admin</div>
+        <button
+          className="md:hidden ml-2 p-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-2xl"
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? "\u2715" : "\u2630"}
+        </button>
+      </div>
+      {/* Navigation */}
+      <nav
+        className={`flex-col w-full mt-2 md:mt-8 space-y-2 md:space-y-4 transition-all duration-300 ease-in-out ${
+          isMenuOpen ? 'flex' : 'hidden'
+        } md:flex`}
       >
-        Logout
-      </button>
-      */}
-    </div>
-  </aside>
+        {navLinks.map((link) => (
+          <Link
+            key={link.to}
+            to={link.to}
+            className={getLinkClasses(link.to)}
+            onClick={() => setIsMenuOpen(false)}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </nav>
+      {/* Admin info and logout (show on desktop, or when menu open on mobile) */}
+      <div className={`flex-col items-center w-full mt-4 md:mt-0 space-y-2 ${isMenuOpen ? 'flex' : 'hidden'} md:flex`}>
+        {admin && (
+          <>
+            <img
+              src={admin.avatar}
+              alt="Admin"
+              className="w-10 h-10 md:w-14 md:h-14 rounded-full object-cover border-2 border-indigo-100 mx-auto"
+            />
+            <div className="text-indigo-900 font-semibold text-center">{admin.name}</div>
+          </>
+        )}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="bg-indigo-100 text-indigo-900 rounded-full px-6 py-2 font-semibold mt-2 hover:bg-indigo-200 transition-colors"
+          >
+            Logout
+          </button>
+        )}
+      </div>
+    </aside>
   );
 };
 

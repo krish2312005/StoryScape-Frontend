@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/user/Navbar";
-import ProfileMenu from "../components/user/ProfileMenu";
 import StoriesGrid from "../components/user/StoriesGrid";
 import Sidebar from "../components/user/Sidebar";
 import { useTheme } from '../../context/ThemeContext';
@@ -23,22 +22,15 @@ const Home_Page = () => {
         setLoading(false);
         return;
       }
-
       try {
-        // Fetch followed authors' stories
         const followingRes = await fetch(`${API_URL}/api/follows/following/${currentUser.id}`);
         const following = await followingRes.json();
-        
         const storiesRes = await fetch(`${API_URL}/api/stories`);
         const allStories = await storiesRes.json();
-
-        // Filter stories from followed authors
         const followedAuthorIds = following.map(f => f.following._id);
-        const filteredStories = allStories.filter(story => 
+        const filteredStories = allStories.filter(story =>
           followedAuthorIds.includes(story.author._id)
         );
-
-        // Get trending stories (most liked stories)
         const trendingStories = allStories
           .sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0))
           .slice(0, 5)
@@ -46,19 +38,16 @@ const Home_Page = () => {
             title: story.title,
             meta: `${story.likes?.length || 0} likes · ${story.author.username}`,
             id: story._id,
-            author: story.author // Include the full author object
+            author: story.author
           }));
-
         setStories(filteredStories);
         setTrendingStories(trendingStories);
       } catch (err) {
-        console.error('Error fetching data:', err);
         setError('Failed to load stories');
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [currentUser]);
 
@@ -66,91 +55,52 @@ const Home_Page = () => {
     return (
       <>
         <Navbar />
-        <ProfileMenu />
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '80vh',
-          background: theme === 'dark' ? '#181824' : '#f7f6f2',
-          flexDirection: 'column',
-          gap: '1rem',
-          color: theme === 'dark' ? '#fff' : '#333'
-        }}>
-          <h2 style={{ color: theme === 'dark' ? '#fff' : '#333', fontSize: '1.5rem' }}>Please log in to see stories from authors you follow</h2>
-          <button 
-            onClick={() => navigate('/login')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: theme === 'dark' ? '#232336' : '#333',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '25px',
-              cursor: 'pointer',
-              fontSize: '1rem'
-            }}
-          >
-            Log In
-          </button>
+        <div className={`min-h-screen flex items-center justify-center px-4 py-8 ${theme === 'dark' ? 'bg-[#181824]' : 'bg-[#f7f6f2]'}`}>
+          <div className={`rounded-2xl shadow-xl p-8 max-w-md w-full text-center ${theme === 'dark' ? 'bg-[#232336]' : 'bg-white'}`}>
+            <h2 className={`font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-indigo-700'} text-2xl md:text-3xl`}>Welcome to StoryScape</h2>
+            <p className={`mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-base md:text-lg`}>Please log in to see stories from authors you follow</p>
+            <button
+              onClick={() => navigate('/login')}
+              className={`w-full py-3 rounded-lg font-semibold text-lg shadow-md transition-all ${theme === 'dark' ? 'bg-[#232336] text-white hover:bg-[#35355a]' : 'bg-indigo-700 text-white hover:bg-indigo-800'}`}
+            >
+              Log In
+            </button>
+          </div>
         </div>
       </>
     );
   }
 
   return (
-    <div style={{ background: theme === 'dark' ? '#181824' : '#f7f6f2', minHeight: '100vh' }}>
+    <div className={`${theme === 'dark' ? 'bg-[#181824]' : 'bg-[#f7f6f2]'} min-h-screen`}>
       <Navbar />
-      <ProfileMenu />
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'flex-start', 
-        padding: '3rem 2rem', 
-        background: theme === 'dark' ? '#181824' : '#f7f6f2', 
-        minHeight: '100vh',
-        color: theme === 'dark' ? '#fff' : '#333'
-      }}>
-        <div style={{ flex: 1, maxWidth: 1100 }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: theme === 'dark' ? '#fff' : '#333' }}>Loading stories...</div>
-          ) : error ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '2rem', 
-              color: '#dc2626' 
-            }}>
+      <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className={`font-semibold text-lg md:text-xl ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>Loading stories...</div>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="bg-red-100 border border-red-300 text-red-700 rounded-lg px-6 py-4 text-base md:text-lg font-semibold">
               {error}
             </div>
-          ) : stories.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '2rem',
-              color: theme === 'dark' ? '#bbb' : '#666'
-            }}>
-              No stories from followed authors yet. 
-              <br />
-              <button 
-                onClick={() => navigate('/Explore')}
-                style={{
-                  marginTop: '1rem',
-                  padding: '0.75rem 1.5rem',
-                  background: theme === 'dark' ? '#232336' : '#333',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '25px',
-                  cursor: 'pointer',
-                  fontSize: '1rem'
-                }}
-              >
-                Explore Stories
-              </button>
+          </div>
+        ) : stories.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className={`rounded-2xl shadow-xl p-8 max-w-lg w-full ${theme === 'dark' ? 'bg-[#232336]' : 'bg-white'}`}>
+              <h3 className={`font-bold mb-2 text-xl md:text-2xl ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>No stories yet</h3>
+              <p className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-base md:text-lg`}>Follow authors to see their latest stories here!</p>
             </div>
-          ) : (
-            <StoriesGrid stories={stories} />
-          )}
-        </div>
-        <Sidebar trending={trendingStories} />
-      </div>
+          </div>
+        ) : (
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="flex-1">
+              <StoriesGrid stories={stories} />
+            </div>
+            <Sidebar trending={trendingStories} />
+          </div>
+        )}
+      </main>
     </div>
   );
 };

@@ -1,253 +1,133 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-
+import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/user/Navbar';
-import ProfileMenu from '../components/user/ProfileMenu';
 import { useTheme } from '../../context/ThemeContext';
 
-const AvatarDisplay = ({ user, size = 100 }) => {
-  const getInitials = (username) => {
-    return username ? username.charAt(0).toUpperCase() : '?';
-  };
-
-  const getRandomColor = (username) => {
-    const colors = [
-      '#F44336', '#E91E63', '#9C27B0', '#673AB7', 
-      '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4',
-      '#009688', '#4CAF50', '#8BC34A', '#CDDC39',
-      '#FFC107', '#FF9800', '#FF5722'
-    ];
-    const index = username ? username.length % colors.length : 0;
-    return colors[index];
-  };
-
-  if (user?.avatar) {
-    return (
-      <img
-        src={user.avatar}
-        alt={user.username}
-        style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          borderRadius: '50%',
-          objectFit: 'cover'
-        }}
-      />
-    );
-  }
-
-  return (
-    <div
-      style={{
-        width: `${size}px`,
-        height: `${size}px`,
-        borderRadius: '50%',
-        backgroundColor: getRandomColor(user?.username),
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: `${size * 0.4}px`,
-        color: '#fff',
-        fontWeight: 'bold'
-      }}
-    >
-      {getInitials(user?.username)}
-    </div>
-  );
-};
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Story_page = () => {
-  const { theme } = useTheme();
   const { id } = useParams();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [story, setStory] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [comment, setComment] = useState('');
+  const [error, setError] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
-  const [followError, setFollowError] = useState('');
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
-    const fetchStoryAndComments = async () => {
+    const fetchStoryData = async () => {
       try {
         // Fetch story
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/stories/${id}`);
-        if (!response.ok) {
-          throw new Error('Story not found');
+        const storyRes = await fetch(`${API_URL}/api/stories/${id}`);
+        if (!storyRes.ok) {
+          let message = 'Story not found';
+          try {
+            const data = await storyRes.json();
+            message = data.message || message;
+          } catch {}
+          throw new Error(message);
         }
-        const data = await response.json();
-        
-        // Fetch comments for the story
-        const commentsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/comments/story/${id}`);
-        let comments = [];
-        if (commentsRes.ok) {
-          comments = await commentsRes.json();
+        const storyData = await storyRes.json();
+
+        // Fetch comments
+        let commentsData = [];
+        try {
+          const commentsRes = await fetch(`${API_URL}/api/stories/${id}/comments`);
+          if (commentsRes.ok) {
+            commentsData = await commentsRes.json();
+          } else if (commentsRes.status !== 404) {
+            // Only log error if not 404
+            console.error('Failed to fetch comments:', commentsRes.status);
+          }
+        } catch (err) {
+          // Only log error if not 404
         }
 
-        // Fetch complete author data including all counts
-        const [authorRes, storiesRes, followersRes, followingRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL}/api/users/${data.author._id}`),
-          fetch(`${import.meta.env.VITE_API_URL}/api/stories`),
-          fetch(`${import.meta.env.VITE_API_URL}/api/follows/followers/${data.author._id}`),
-          fetch(`${import.meta.env.VITE_API_URL}/api/follows/following/${data.author._id}`)
-        ]);
-        
-        const authorData = await authorRes.json();
-        const storiesData = await storiesRes.json();
-        const followersData = await followersRes.json();
-        const followingData = await followingRes.json();
-
-        // Combine all data
-        // Filter stories to only include the author's stories
-        const authorStories = Array.isArray(storiesData) 
-          ? storiesData.filter(story => story.author._id === data.author._id)
-          : [];
-
-        const enrichedAuthorData = {
-          ...authorData,
-          stories: authorStories,
-          followers: Array.isArray(followersData) ? followersData : [],
-          following: Array.isArray(followingData) ? followingData : []
-        };
-        
-        setStory({ 
-          ...data, 
-          comments,
-          author: enrichedAuthorData
-        });
-        // Check if current user has liked the story
+        setStory(storyData);
+        setComments(commentsData);
         if (currentUser) {
-          setIsLiked(data.likes.includes(currentUser.id));
+          setIsLiked(storyData.likes?.includes(currentUser.id) || false);
         }
-        // Check if current user is already following the author
-        if (currentUser && data.author) {
-          const followersResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/follows/followers/${data.author._id}`);
-          const followersData = await followersResponse.json();
-          const isAlreadyFollowing = followersData.some(follow => follow.follower._id === currentUser.id);
-          setIsFollowing(isAlreadyFollowing);
+        if (currentUser && storyData.author._id !== currentUser.id) {
+          try {
+            const followRes = await fetch(`${API_URL}/api/follows/check/${currentUser.id}/${storyData.author._id}`);
+            if (followRes.ok) {
+              const followData = await followRes.json();
+              setIsFollowing(followData.isFollowing);
+            } else if (followRes.status === 404) {
+              setIsFollowing(false); // Not following
+            } else {
+              // Only log error if not 404
+              console.error('Failed to check follow:', followRes.status);
+            }
+          } catch (err) {
+            // Ignore follow check errors
+          }
         }
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Failed to load story.');
       } finally {
         setLoading(false);
       }
     };
-    fetchStoryAndComments();
-  }, [id]);
+    fetchStoryData();
+  }, [id, currentUser]);
 
   const handleLike = async () => {
-    if (!currentUser) {
-      setError('Please log in to like stories');
-      return;
-    }
+    if (!currentUser) return navigate('/login');
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/stories/${id}/like`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch(`${API_URL}/api/stories/${id}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUser.id }),
       });
       if (response.ok) {
-        const updatedStory = await response.json();
-        setStory(prev => ({ ...prev, likes: updatedStory.likes }));
         setIsLiked(!isLiked);
+        setStory(prev => ({
+          ...prev,
+          likes: isLiked
+            ? prev.likes.filter(id => id !== currentUser.id)
+            : [...(prev.likes || []), currentUser.id]
+        }));
       }
-    } catch (err) {
-      setError('Failed to update like status');
-    }
+    } catch {}
+  };
+
+  const handleFollow = async () => {
+    if (!currentUser) return navigate('/login');
+    try {
+      const response = await fetch(`${API_URL}/api/follows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ follower: currentUser.id, following: story.author._id }),
+      });
+      if (response.ok) setIsFollowing(!isFollowing);
+    } catch {}
   };
 
   const handleComment = async (e) => {
     e.preventDefault();
-    if (!currentUser) {
-      setError('Please log in to comment');
-      return;
-    }
-    if (!comment.trim()) return;
+    if (!currentUser) return navigate('/login');
+    if (!newComment.trim()) return;
+    setIsSubmitting(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comments`, {
+      const response = await fetch(`${API_URL}/api/stories/${id}/comments`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          story: id,
-          user: currentUser.id,
-          content: comment.trim(),
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newComment.trim(), author: currentUser.id, story: id }),
       });
       if (response.ok) {
-        const newComment = await response.json();
-        setStory(prev => ({
-          ...prev,
-          comments: [...prev.comments, newComment],
-        }));
-        setComment('');
+        const newCommentData = await response.json();
+        setComments(prev => [newCommentData, ...prev]);
+        setNewComment('');
       }
-    } catch (err) {
-      setError('Failed to post comment');
-    }
-  };
-
-  const handleFollow = async () => {
-    setFollowError('');
-    if (!currentUser) {
-      setFollowError('Please log in to follow authors');
-      return;
-    }
-
-    try {
-      if (isFollowing) {
-        // Unfollow the author
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/follows/follower/${currentUser.id}/following/${story.author._id}`, {
-          method: 'DELETE',
-        });
-        if (response.ok) {
-          setIsFollowing(false);
-          // Fetch updated author data
-          const authorResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${story.author._id}`);
-          const authorData = await authorResponse.json();
-          // Update the story state with new author data
-          setStory(prev => ({
-            ...prev,
-            author: authorData
-          }));
-        } else {
-          const data = await response.json();
-          setFollowError(data.message || 'Failed to unfollow author');
-        }
-      } else {
-        // Follow the author
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/follows`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            follower: currentUser.id,
-            following: story.author._id,
-          }),
-        });
-        if (response.ok) {
-          setIsFollowing(true);
-          // Fetch updated author data
-          const authorResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${story.author._id}`);
-          const authorData = await authorResponse.json();
-          // Update the story state with new author data
-          setStory(prev => ({
-            ...prev,
-            author: authorData
-          }));
-        } else {
-          const data = await response.json();
-          setFollowError(data.message || 'Failed to follow author');
-        }
-      }
-    } catch (err) {
-      setFollowError(isFollowing ? 'Failed to unfollow author' : 'Failed to follow author');
+    } catch {} finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -255,16 +135,8 @@ const Story_page = () => {
     return (
       <>
         <Navbar />
-        <ProfileMenu />
-        <div style={{ 
-          minHeight: '100vh', 
-          background: theme === 'dark' ? '#181824' : '#f7f6f2',
-          padding: '2rem',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <div style={{ fontSize: '1.2rem', color: theme === 'dark' ? '#bbb' : '#666' }}>Loading story...</div>
+        <div className={`min-h-screen flex items-center justify-center px-4 py-8 ${theme === 'dark' ? 'bg-[#181824]' : 'bg-[#f7f6f2]'}`}>
+          <div className={`text-center ${theme === 'dark' ? 'text-white' : 'text-indigo-700'} font-semibold text-lg md:text-xl`}>Loading story...</div>
         </div>
       </>
     );
@@ -274,305 +146,132 @@ const Story_page = () => {
     return (
       <>
         <Navbar />
-        <ProfileMenu />
-        <div style={{ 
-          minHeight: '100vh', 
-          background: theme === 'dark' ? '#181824' : '#f7f6f2',
-          padding: '2rem',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <div style={{ 
-            background: theme === 'dark' ? '#2d2540' : '#fee2e2',
-            border: theme === 'dark' ? '1px solid #3d3550' : '1px solid #fecaca',
-            color: '#dc2626',
-            padding: '1rem',
-            borderRadius: '8px',
-            fontSize: '1.1rem'
-          }}>
-            {error}
+        <div className={`min-h-screen flex items-center justify-center px-4 py-8 ${theme === 'dark' ? 'bg-[#181824]' : 'bg-[#f7f6f2]'}`}>
+          <div className={`rounded-2xl shadow-xl p-8 max-w-md w-full text-center ${theme === 'dark' ? 'bg-[#232336]' : 'bg-white'}`}>
+            <h2 className={`font-bold mb-4 text-xl md:text-2xl ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>Story Not Found</h2>
+            <p className={`mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-base md:text-lg`}>{error}</p>
+            <button
+              onClick={() => navigate('/')}
+              className={`w-full py-3 rounded-lg font-semibold text-lg shadow-md transition-all ${theme === 'dark' ? 'bg-[#232336] text-white hover:bg-[#35355a]' : 'bg-indigo-700 text-white hover:bg-indigo-800'}`}
+            >
+              Go Home
+            </button>
           </div>
         </div>
       </>
     );
   }
 
-  if (!story) {
-    console.log('Story is null or undefined:', story);
-    return null;
-  }
-
   return (
     <>
       <Navbar />
-      <ProfileMenu />
-      <div style={{ 
-        minHeight: '100vh', 
-        background: theme === 'dark' ? '#181824' : '#f7f6f2',
-        padding: '2rem'
-      }}>
-        <div style={{ 
-          maxWidth: '1200px', 
-          margin: '0 auto',
-          display: 'flex',
-          gap: '2rem'
-        }}>
-          {/* Main Story Content */}
-          <div style={{ flex: 1 }}>
-            <div style={{
-              background: theme === 'dark' ? '#232336' : '#fff',
-              borderRadius: '15px',
-              padding: '2rem',
-              boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-              <h1 style={{
-                fontSize: '2.5rem',
-                color: theme === 'dark' ? '#fff' : '#333',
-                marginBottom: '1rem',
-                lineHeight: '1.2'
-              }}>
-                {story.title}
-              </h1>
-              
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                marginBottom: '2rem',
-                color: theme === 'dark' ? '#bbb' : '#666'
-              }}>
-                <span>{story.genre}</span>
-                <span>•</span>
-                <span>{new Date(story.createdAt).toLocaleDateString()}</span>
-                <span>•</span>
-                <span>{Math.ceil(story.content.split(/\s+/).length / 200)} min read</span>
-              </div>
-
-              <div style={{
-                fontSize: '1.1rem',
-                lineHeight: '1.8',
-                color: theme === 'dark' ? '#eee' : '#444',
-                whiteSpace: 'pre-line'
-              }}>
-                {story.content}
-              </div>
-
-              <div style={{
-                marginTop: '2rem',
-                paddingTop: '2rem',
-                borderTop: theme === 'dark' ? '1px solid #333' : '1px solid #eee',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button 
-                    onClick={handleLike}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      color: isLiked ? '#dc2626' : (theme === 'dark' ? '#bbb' : '#666'),
-                      fontSize: '1rem'
-                    }}
-                  >
-                    <span>❤️</span> {story.likes.length}
-                  </button>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    color: theme === 'dark' ? '#bbb' : '#666',
-                    fontSize: '1rem'
-                  }}>
-                    <span>💬</span> {story.comments?.length || 0}
+      <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#181824]' : 'bg-[#f7f6f2]'} px-4 py-8 md:py-12`}>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8 items-start">
+          {/* Main Content */}
+          <div className="flex-1 w-full min-w-0">
+            <div className={`rounded-2xl shadow-xl p-6 md:p-10 mb-6 ${theme === 'dark' ? 'bg-[#232336]' : 'bg-white'}`}>  
+              {/* Story Header */}
+              <div className="mb-8">
+                <h1 className={`font-extrabold mb-4 text-2xl md:text-4xl leading-tight ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>{story.title}</h1>
+                <div className="flex flex-wrap items-center gap-4 mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${theme === 'dark' ? 'bg-[#444] text-white' : 'bg-indigo-100 text-indigo-700'}`}>{story.author.username.charAt(0).toUpperCase()}</div>
+                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>{story.author.username}</span>
                   </div>
+                  <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{new Date(story.createdAt).toLocaleDateString()}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${theme === 'dark' ? 'bg-[#444] text-indigo-100' : 'bg-indigo-50 text-indigo-700'}`}>{story.genre}</span>
                 </div>
-                {currentUser && currentUser.id === story.author._id && (
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-4 mb-4">
                   <button
-                    onClick={() => navigate(`/Write/${story._id}`)}
-                    style={{
-                      background: theme === 'dark' ? '#3d3550' : '#2d2540',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '25px',
-                      padding: '0.5rem 1rem',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}
+                    onClick={handleLike}
+                    className={`px-6 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-sm ${isLiked ? 'bg-red-500 text-white' : theme === 'dark' ? 'bg-[#444] text-white hover:bg-[#35355a]' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
                   >
-                    ✏️ Edit Story
+                    ❤️ {story.likes?.length || 0} Likes
                   </button>
-                )}
+                  {currentUser && story.author._id !== currentUser.id && (
+                    <button
+                      onClick={handleFollow}
+                      className={`px-6 py-2 rounded-lg font-semibold transition-all shadow-sm ${isFollowing ? 'bg-green-500 text-white' : theme === 'dark' ? 'bg-[#444] text-white hover:bg-[#35355a]' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                    >
+                      {isFollowing ? '✓ Following' : '+ Follow'}
+                    </button>
+                  )}
+                </div>
               </div>
-
+              {/* Story Content */}
+              <div className={`prose prose-lg max-w-none mb-12 ${theme === 'dark' ? 'prose-invert' : ''}`}>{story.content.split('\n').map((paragraph, index) => (<p key={index}>{paragraph}</p>))}</div>
               {/* Comments Section */}
-              <div style={{ marginTop: '3rem' }}>
-                <h3 style={{ 
-                  fontSize: '1.5rem', 
-                  color: theme === 'dark' ? '#fff' : '#333',
-                  marginBottom: '1.5rem'
-                }}>
-                  Comments
-                </h3>
-
+              <div>
+                <h3 className={`font-bold mb-6 text-xl md:text-2xl ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>Comments ({comments.length})</h3>
                 {currentUser && (
-                  <form onSubmit={handleComment} style={{ marginBottom: '2rem' }}>
+                  <form onSubmit={handleComment} className="mb-8">
                     <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder="Write a comment..."
-                      style={{
-                        width: '100%',
-                        minHeight: '100px',
-                        padding: '1rem',
-                        borderRadius: '8px',
-                        border: theme === 'dark' ? '1px solid #333' : '1px solid #ddd',
-                        marginBottom: '1rem',
-                        fontSize: '1rem',
-                        resize: 'vertical',
-                        background: theme === 'dark' ? '#232336' : '#fff',
-                        color: theme === 'dark' ? '#fff' : '#333'
-                      }}
+                      value={newComment}
+                      onChange={e => setNewComment(e.target.value)}
+                      placeholder="Share your thoughts..."
+                      className={`w-full min-h-[100px] p-4 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-vertical mb-4 ${theme === 'dark' ? 'bg-[#232336] text-white border-[#444]' : 'bg-white text-indigo-900 border-gray-200'}`}
                     />
                     <button
                       type="submit"
-                      disabled={!comment.trim()}
-                      style={{
-                        background: comment.trim() ? (theme === 'dark' ? '#3d3550' : '#2d2540') : '#ccc',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '25px',
-                        padding: '0.75rem 1.5rem',
-                        cursor: comment.trim() ? 'pointer' : 'not-allowed',
-                        fontSize: '1rem'
-                      }}
+                      disabled={!newComment.trim() || isSubmitting}
+                      className={`px-6 py-2 rounded-lg font-semibold transition-all shadow-sm ${newComment.trim() && !isSubmitting ? (theme === 'dark' ? 'bg-indigo-700 text-white hover:bg-indigo-800' : 'bg-indigo-700 text-white hover:bg-indigo-800') : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                     >
-                      Post Comment
+                      {isSubmitting ? 'Posting...' : 'Post Comment'}
                     </button>
                   </form>
                 )}
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {story.comments?.map((comment) => (
-                    <div key={comment._id} style={{
-                      padding: '1rem',
-                      background: theme === 'dark' ? '#181824' : '#f8f8f8',
-                      borderRadius: '8px'
-                    }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        marginBottom: '0.5rem'
-                      }}>
-                        <AvatarDisplay user={comment.user} size={40} />
+                <div className="flex flex-col gap-6">
+                  {comments.map((comment) => (
+                    <div key={comment._id} className={`rounded-lg p-6 ${theme === 'dark' ? 'bg-[#181824]' : 'bg-indigo-50'}`}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-base ${theme === 'dark' ? 'bg-[#444] text-white' : 'bg-indigo-100 text-indigo-700'}`}>{comment.user.username.charAt(0).toUpperCase()}</div>
                         <div>
-                          <div style={{ fontWeight: 'bold', color: theme === 'dark' ? '#fff' : '#333' }}>
-                            {comment.user.username}
-                          </div>
-                          <div style={{ fontSize: '0.9rem', color: theme === 'dark' ? '#bbb' : '#666' }}>
-                            {new Date(comment.createdAt).toLocaleDateString()}
-                          </div>
+                          <div className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>{comment.user.username}</div>
+                          <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{new Date(comment.createdAt).toLocaleDateString()}</div>
                         </div>
                       </div>
-                      <p style={{ color: theme === 'dark' ? '#eee' : '#444', lineHeight: '1.6' }}>
-                        {comment.content}
-                      </p>
+                      <div className={`text-base ${theme === 'dark' ? 'text-gray-200' : 'text-indigo-900'}`}>{comment.content}</div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Author Information */}
-          <div style={{ width: '300px' }}>
-            <div style={{
-              background: theme === 'dark' ? '#232336' : '#fff',
-              borderRadius: '15px',
-              padding: '1.5rem',
-              boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
-              position: 'sticky',
-              top: '2rem'
-            }}>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                marginBottom: '1.5rem'
-              }}>
-                <div style={{ marginBottom: '1rem' }}>
-                  <AvatarDisplay user={story.author} size={100} />
-                </div>
-                <h2 style={{
-                  fontSize: '1.5rem',
-                  color: theme === 'dark' ? '#fff' : '#333',
-                  marginBottom: '0.5rem'
-                }}>
-                  {story.author.username}
-                </h2>
-                <p style={{
-                  color: theme === 'dark' ? '#bbb' : '#666',
-                  fontSize: '0.9rem',
-                  lineHeight: '1.6'
-                }}>
-                  {story.author.bio || 'No bio available'}
-                </p>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '1rem',
-                marginBottom: '1.5rem',
-                textAlign: 'center'
-              }}>
+          {/* Sidebar */}
+          <div className="hidden md:block w-full md:w-80 flex-shrink-0">
+            <div className={`rounded-2xl shadow-xl p-8 sticky top-8 ${theme === 'dark' ? 'bg-[#232336]' : 'bg-white'}`} style={{height: 'fit-content'}}>
+              <h3 className={`font-bold mb-6 text-lg md:text-xl ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>About the Author</h3>
+              <div className="flex items-center gap-4 mb-6">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl ${theme === 'dark' ? 'bg-[#444] text-white' : 'bg-indigo-100 text-indigo-700'}`}>{story.author.username.charAt(0).toUpperCase()}</div>
                 <div>
-                  <div style={{ fontWeight: 'bold', color: theme === 'dark' ? '#fff' : '#333' }}>
-                    {story.author.stories?.length || 0}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: theme === 'dark' ? '#bbb' : '#666' }}>Stories</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 'bold', color: theme === 'dark' ? '#fff' : '#333' }}>
-                    {Array.isArray(story.author.followers) ? story.author.followers.length : 0}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: theme === 'dark' ? '#bbb' : '#666' }}>Followers</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 'bold', color: theme === 'dark' ? '#fff' : '#333' }}>
-                    {Array.isArray(story.author.following) ? story.author.following.length : 0}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: theme === 'dark' ? '#bbb' : '#666' }}>Following</div>
+                  <div className={`font-semibold text-lg ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>{story.author.username}</div>
+                  <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Member since {new Date(story.author.createdAt).getFullYear()}</div>
                 </div>
               </div>
-
-              <Link to={`/UserProfile/${story.author._id}`} style={{ textDecoration: 'none' }}>
-                <button style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  background: theme === 'dark' ? '#3d3550' : '#2d2540',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '25px',
-                  cursor: 'pointer',
-                  fontSize: '1rem',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = theme === 'dark' ? '#4d4570' : '#3d3550'}
-                onMouseOut={(e) => e.target.style.backgroundColor = theme === 'dark' ? '#3d3550' : '#2d2540'}>
-                  View Profile
+              {currentUser && story.author._id !== currentUser.id && (
+                <button
+                  onClick={handleFollow}
+                  className={`w-full py-3 rounded-lg font-semibold transition-all shadow-sm mb-6 ${isFollowing ? 'bg-green-500 text-white' : theme === 'dark' ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' : 'bg-indigo-700 text-white hover:bg-indigo-800'}`}
+                >
+                  {isFollowing ? '✓ Following' : '+ Follow Author'}
                 </button>
-              </Link>
+              )}
+              <div className={`rounded-lg p-6 ${theme === 'dark' ? 'bg-[#181824]' : 'bg-indigo-50'}`}>
+                <h4 className={`font-bold mb-4 text-base ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>Story Stats</h4>
+                <div className="flex justify-between mb-2 text-sm">
+                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Likes:</span>
+                  <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>{story.likes?.length || 0}</span>
+                </div>
+                <div className="flex justify-between mb-2 text-sm">
+                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Comments:</span>
+                  <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>{comments.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Reading time:</span>
+                  <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>{Math.ceil(story.content.split(' ').length / 200)} min</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -582,3 +281,4 @@ const Story_page = () => {
 };
 
 export default Story_page;
+
