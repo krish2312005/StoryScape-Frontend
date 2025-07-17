@@ -31,7 +31,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3 md:py-4">
         {/* Logo */}
         <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}> 
-          <img src="/public/logo.png" alt="Logo" className="h-10 w-10 md:h-14 md:w-14 object-contain mr-2" />
+          <img src="/logo.png" alt="Logo" className="h-10 w-10 md:h-14 md:w-14 object-contain mr-2" />
           <span className={`text-2xl md:text-3xl font-extrabold tracking-tight select-none ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>StoryScape</span>
         </div>
         {/* Desktop Nav */}
