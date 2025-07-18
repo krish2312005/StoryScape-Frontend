@@ -5,7 +5,6 @@ import { useTheme } from '../../../context/ThemeContext';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [editedUser, setEditedUser] = useState(null);
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const user = JSON.parse(localStorage.getItem('user'));
@@ -97,7 +96,7 @@ const Navbar = () => {
       >
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
-            <img src={editedUser.avatar} alt="Logo" className="h-10 w-10 object-contain mr-2" />
+            <img src="/logo.png" alt="Logo" className="h-10 w-10 object-contain mr-2" />
             <span className={`text-xl font-extrabold tracking-tight select-none ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>StoryScape</span>
           </div>
           <button
