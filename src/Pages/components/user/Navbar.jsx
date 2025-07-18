@@ -5,6 +5,7 @@ import { useTheme } from '../../../context/ThemeContext';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [editedUser, setEditedUser] = useState(null);
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const user = JSON.parse(localStorage.getItem('user'));
