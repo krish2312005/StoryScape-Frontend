@@ -96,7 +96,7 @@ const Navbar = () => {
       >
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
-            <img src="/public/logo.png" alt="Logo" className="h-10 w-10 object-contain mr-2" />
+            <img src={editedUser.avatar} alt="Logo" className="h-10 w-10 object-contain mr-2" />
             <span className={`text-xl font-extrabold tracking-tight select-none ${theme === 'dark' ? 'text-white' : 'text-indigo-700'}`}>StoryScape</span>
           </div>
           <button
